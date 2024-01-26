@@ -5,15 +5,18 @@ use colored::Colorize;
 
 
 const RPC_URL: &str = "https://eth.llamarpc.com";
+const MAX_ITER: u64 = 10;
 
 #[tokio::main]
 
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut iter = 0;
     let provider = Provider::<Http>::try_from(RPC_URL)?;
     let mut old_block_number: U64 = provider.get_block_number().await?;
     loop {
         let new_block_number: U64 = provider.get_block_number().await?;
         if new_block_number != old_block_number{
+            iter += 1;
             let current_time = Utc::now();
             println!("{current_time}\nCurrent Block Number: {new_block_number}");
 
@@ -49,6 +52,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             old_block_number = new_block_number;
             println!("");
         }
+        if iter > MAX_ITER{
+            break;
+        }
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
+    Ok(())
 }
