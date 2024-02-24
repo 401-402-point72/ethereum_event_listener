@@ -1,2 +1,3 @@
 /ethereum_event_listener/target/
 /.vscode
+.env
