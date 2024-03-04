@@ -11,3 +11,4 @@ aws-config = "1.1.4"
 aws-sdk-s3 = "1.14.0"
 clap = { version = "~4.4", features = ["derive"] }
 tracing-subscriber = { version = "0.3.5", features = ["env-filter"] }
+dotenv = "0.15.0"
