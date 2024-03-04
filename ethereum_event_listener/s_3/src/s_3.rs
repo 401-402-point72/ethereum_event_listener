@@ -80,7 +80,7 @@ pub async fn main() -> Result<(), Error> {
 
     println!("S3 client version: {}", PKG_VERSION);
 
-    let filename: String = String::from("test.json");
+    let filename: String = String::from("tests/test.json");
     let key: String = String::from("test_eth");
 
     upload_object(&client, &bucket, &filename, &key).await

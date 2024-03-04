@@ -7,12 +7,14 @@ Event listener for the Ethereum Block Chain
 ├── ethereum_event_listener
 │   ├── Cargo.lock
 │   ├── Cargo.toml
-│   ├── s3
+│   ├── s_3
 │   │   ├── Cargo.toml
 │   │   └── src
 │   │       ├── main.rs
 │   │       └── s_3.rs
-│   └── web3
+│   ├── tests
+│   │   └── test.json
+│   └── web_3
 │       ├── Cargo.toml
 │       └── src
 │           ├── main.rs
