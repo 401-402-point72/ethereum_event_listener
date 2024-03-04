@@ -18,10 +18,10 @@ async fn init_connection() -> (String, Client) {
     println!("Bucket Name: {}", bucket_name);
     println!(
         "Region: {}",
-        region_provider.region().await.unwrap().as_ref()
+        region_provider.region().await.unwrap()
     );
 
-    // region_provider must be printed before using ... don't ask me why
+    // region_provider somehow gets borrowed so gotta print first ... weird rust bs
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&shared_config);
 
@@ -37,12 +37,6 @@ async fn upload_object(
     key: &str,
 ) -> Result<(), Error> {
     let resp = client.list_buckets().send().await?;
-
-    for bucket in resp.buckets() {
-        println!("bucket: {:?}", bucket.name().unwrap_or_default())
-    }
-    println!();
-
     let body = ByteStream::from_path(Path::new(filename)).await;
 
     match body {
