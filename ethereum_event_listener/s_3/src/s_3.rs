@@ -5,32 +5,27 @@
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::{config::Region, meta::PKG_VERSION, Client, Error};
-use clap::Parser;
-use std::io;
+use std::env;
 use std::path::Path;
 use std::process;
 
-#[derive(Debug, Parser)]
-struct Opt {
-    /// The AWS Region.
-    #[structopt(short, long)]
-    region: Option<String>,
+async fn init_connection() -> (String, Client) {
+    dotenv::dotenv().ok();
 
-    /// The name of the bucket.
-    #[structopt(short, long)]
-    bucket: String,
+    let bucket_name = &env::var("BUCKET_NAME").unwrap();
+    let region_provider = RegionProviderChain::first_try(Region::new("us-east-1"));
 
-    /// The name of the file to upload.
-    #[structopt(short, long)]
-    filename: String,
+    println!("Bucket Name: {}", bucket_name);
+    println!(
+        "Region: {}",
+        region_provider.region().await.unwrap()
+    );
 
-    /// The name of the object in the bucket.
-    #[structopt(short, long)]
-    key: String,
+    // region_provider somehow gets borrowed so gotta print first ... weird rust bs
+    let shared_config = aws_config::from_env().region(region_provider).load().await;
+    let client = Client::new(&shared_config);
 
-    /// Whether to display additional information.
-    #[structopt(short, long)]
-    verbose: bool,
+    (bucket_name.to_string(), client)
 }
 
 // Upload a file to a bucket.
@@ -42,12 +37,6 @@ async fn upload_object(
     key: &str,
 ) -> Result<(), Error> {
     let resp = client.list_buckets().send().await?;
-
-    for bucket in resp.buckets() {
-        println!("bucket: {:?}", bucket.name().unwrap_or_default())
-    }
-    println!();
-
     let body = ByteStream::from_path(Path::new(filename)).await;
 
     match body {
@@ -76,55 +65,17 @@ async fn upload_object(
 /*
  * snippet-end:[s3.rust.s3-helloworld]
  * Lists your buckets and uploads a file to a bucket.
- *
- * # Arguments
- * `-b BUCKET` - The bucket to which the file is uploaded.
- * `-k KEY` - The name of the file to upload to the bucket.
- * `[-r REGION]` - The Region in which the client is created.
- *    If not supplied, uses the value of the **AWS_REGION** environment variable.
- *    If the environment variable is not set, defaults to **us-east-1**.
- * `[-v]` - Whether to display additional information.
  */
 #[tokio::main]
 pub async fn main() -> Result<(), Error> {
+    let (bucket, client) = init_connection().await;
+
     tracing_subscriber::fmt::init();
 
-    println!("Enter bucket name:");
-    let mut bucket = String::new();
-    io::stdin()
-        .read_line(&mut bucket)
-        .expect("Failed to read line");
-    let bucket = bucket.trim();
-
-    println!("Enter filename:");
-    let mut filename = String::new();
-    io::stdin()
-        .read_line(&mut filename)
-        .expect("Failed to read line");
-    let filename = filename.trim();
-
-    println!("Enter key:");
-    let mut key = String::new();
-    io::stdin()
-        .read_line(&mut key)
-        .expect("Failed to read line");
-    let key = key.trim();
-
-    let region_provider = RegionProviderChain::first_try(Region::new("us-east-1"));
-    println!();
-
     println!("S3 client version: {}", PKG_VERSION);
-    println!(
-        "Region:            {}",
-        region_provider.region().await.unwrap().as_ref()
-    );
-    println!("Bucket:            {}", &bucket);
-    println!("Filename:          {}", &filename);
-    println!("Key:               {}", &key);
-    println!();
 
-    let shared_config = aws_config::from_env().region(region_provider).load().await;
-    let client = Client::new(&shared_config);
+    let filename: String = String::from("tests/test.json");
+    let key: String = String::from("test_eth");
 
     upload_object(&client, &bucket, &filename, &key).await
 }
