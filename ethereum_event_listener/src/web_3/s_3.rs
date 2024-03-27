@@ -71,22 +71,3 @@ pub async fn upload_object(
     // }
     Ok(())
 }
-
-/*
- * snippet-end:[s3.rust.s3-helloworld]
- * Lists your buckets and uploads a file to a bucket.
- */
-// #[tokio::main]
-// pub async fn main() -> (String, Client) {
-//     let (bucket, client) = init_connection().await;
-
-//     tracing_subscriber::fmt::init();
-
-//     println!("S3 client version: {}", PKG_VERSION);
-
-//     let filename: String = String::from("tests/test.json");
-//     let key: String = String::from("test_eth");
-
-//     // upload_object(&client, &bucket, &filename, &key).await
-//     (bucket, client)
-// }
