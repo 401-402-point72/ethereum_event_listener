@@ -12,10 +12,6 @@ fn main() {
 
             if input == "1" {
                 let _ = web_3::read_block_data();
-            // } else if input == "2" {
-            //     if let Err(e) = s_3::main() {
-            //         eprintln!("Error running S3 main: {:?}", e);
-            //     }
             } else {
                 eprintln!("Error: choose 1 or 2 ");
             }
