@@ -844,6 +844,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ethereum_event_listener"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-s3",
+ "chrono",
+ "dotenv",
+ "serde_json",
+ "tokio",
+ "tracing-subscriber",
+ "web3",
+]
+
+[[package]]
 name = "fastrand"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2023,17 +2037,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e86697c916019a8588c99b5fac3cead74ec0b4b819707a682fd4d23fa0ce1ba1"
 
 [[package]]
-name = "s_3"
-version = "0.1.0"
-dependencies = [
- "aws-config",
- "aws-sdk-s3",
- "dotenv",
- "tokio",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "schannel"
 version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2863,16 +2866,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
-]
-
-[[package]]
-name = "web_3"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "dotenv",
- "tokio",
- "web3",
 ]
 
 [[package]]

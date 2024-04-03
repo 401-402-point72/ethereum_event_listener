@@ -1,9 +1,13 @@
+mod s_3;
+
 use chrono::{DateTime, Local, TimeZone};
 use std::env;
 use std::str::FromStr;
 use std::thread;
 use std::time::Duration;
-use web3::types::{BlockId, BlockNumber, H160, U256, U64};
+use web3::types::{BlockId, BlockNumber, H160, H256, U256, U64};
+use serde_json::{json,Value};
+use std::sync::Arc;
 
 fn wei_to_eth(wei_val: U256) -> f64 {
     let res = wei_val.as_u128() as f64;
@@ -18,8 +22,26 @@ fn convert_date(timestamp_str: &str) -> DateTime<Local> {
     }
 }
 
+fn format_as_json(block: &web3::types::Block<H256>) -> Value {
+    // println!("In format");
+    
+    let block_as_json = json!({
+        "blockHash": block.hash,
+        "blockNumber": block.number,
+        "numberOfTransactions": block.transactions.len(),
+        "blockGasUsed": block.gas_used,
+        "difficulty": block.total_difficulty.unwrap(),
+        "timestamp": block.timestamp.to_string(),
+        "authorAddress": block.author,
+    });
+
+    (block_as_json)
+}
+
 #[tokio::main]
 pub async fn read_block_data() -> web3::Result<()> {
+    //process setup, connect to S3 and get environment secrets
+    let (bucket, client) = s_3::init_connection().await;
     dotenv::dotenv().ok();
 
     // Build the connection to the network
@@ -40,6 +62,9 @@ pub async fn read_block_data() -> web3::Result<()> {
     // Used for caching latest block number
     let mut previous_block_number: U64 = U64([u64::min_value(); 1]);
 
+    let bucket_arc = Arc::new(bucket.clone());
+    let client_arc = Arc::new(client.clone());
+
     loop {
         // Get the latest block
         let latest_block = web3s
@@ -58,8 +83,18 @@ pub async fn read_block_data() -> web3::Result<()> {
                 &latest_block.total_difficulty.unwrap(),
                 convert_date(&latest_block.timestamp.to_string())
             );
+
+            let bucket_clone = Arc::clone(&bucket_arc);
+            let client_clone = Arc::clone(&client_arc);
+
+            let _ = thread::spawn(move || {
+                // println!("Spawned a thread to store the data");
+                let block_json = format_as_json(&latest_block);
+                s_3::upload_object(&client_clone, &bucket_clone, &block_json);
+            });
         }
         previous_block_number = block_number;
+
         // limits the number of requests we make
         thread::sleep(Duration::from_secs(1));
     }
