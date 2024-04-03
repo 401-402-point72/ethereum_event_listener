@@ -5,7 +5,8 @@ use std::env;
 use std::str::FromStr;
 use std::thread;
 use std::time::Duration;
-use web3::types::{BlockId, BlockNumber, H160, U256, U64};
+use web3::types::{BlockId, BlockNumber, H160, H256, U256, U64};
+use serde_json::{json,Value};
 use std::sync::Arc;
 
 fn wei_to_eth(wei_val: U256) -> f64 {
@@ -19,6 +20,22 @@ fn convert_date(timestamp_str: &str) -> DateTime<Local> {
     } else {
         return Local.timestamp(0, 0);
     }
+}
+
+fn format_as_json(block: &web3::types::Block<H256>) -> Value {
+    // println!("In format");
+    
+    let block_as_json = json!({
+        "blockHash": block.hash,
+        "blockNumber": block.number,
+        "numberOfTransactions": block.transactions.len(),
+        "blockGasUsed": block.gas_used,
+        "difficulty": block.total_difficulty.unwrap(),
+        "timestamp": block.timestamp.to_string(),
+        "authorAddress": block.author,
+    });
+
+    (block_as_json)
 }
 
 #[tokio::main]
@@ -59,23 +76,25 @@ pub async fn read_block_data() -> web3::Result<()> {
         let block_number = latest_block.number.unwrap();
         // Do not print block if that one was already printed
         if block_number > previous_block_number {
-            // println!(
-            //     "block number {}, number of transactions: {}, difficulty {} @ {}",
-            //     latest_block.number.unwrap(),
-            //     &latest_block.transactions.len(),
-            //     &latest_block.total_difficulty.unwrap(),
-            //     convert_date(&latest_block.timestamp.to_string())
-            // );
+            println!(
+                "block number {}, number of transactions: {}, difficulty {} @ {}",
+                latest_block.number.unwrap(),
+                &latest_block.transactions.len(),
+                &latest_block.total_difficulty.unwrap(),
+                convert_date(&latest_block.timestamp.to_string())
+            );
 
             let bucket_clone = Arc::clone(&bucket_arc);
             let client_clone = Arc::clone(&client_arc);
 
             let _ = thread::spawn(move || {
-                println!("Spawned a thread to store the data");
-                s_3::upload_object(&client_clone, &bucket_clone, &latest_block);
+                // println!("Spawned a thread to store the data");
+                let block_json = format_as_json(&latest_block);
+                s_3::upload_object(&client_clone, &bucket_clone, &block_json);
             });
         }
         previous_block_number = block_number;
+
         // limits the number of requests we make
         thread::sleep(Duration::from_secs(1));
     }

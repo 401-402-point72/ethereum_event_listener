@@ -9,7 +9,7 @@ use web3::types::{BlockId, BlockNumber, H256, U256, U64};
 use std::env;
 use std::path::Path;
 use std::process;
-use serde_json::json;
+use serde_json::{json,Value};
 
 pub async fn init_connection() -> (String, Client) {
     dotenv::dotenv().ok();
@@ -36,18 +36,14 @@ pub async fn init_connection() -> (String, Client) {
 pub async fn upload_object(
     client: &Client,
     bucket: &str,
-    block: &web3::types::Block<H256>
+    block: &Value
 ) -> Result<(), Error> {
     let resp = client.list_buckets().send().await;
 
-    println!("In thread");
-    println!(
-        "block number {}, number of transactions: {}, difficulty {}",
-        block.number.unwrap(),
-        &block.transactions.len(),
-        &block.total_difficulty.unwrap(),
-        // convert_date(&block.timestamp.to_string())
-    );
+    // println!("In thread");
+
+    println!("{:#}", block);
+   
     // let body = ByteStream::from_path(Path::new(filename)).await;
 
     // match body {
