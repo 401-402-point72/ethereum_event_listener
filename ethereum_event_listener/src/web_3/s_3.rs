@@ -3,15 +3,12 @@
 #![allow(clippy::result_large_err)]
 
 use aws_config::meta::region::RegionProviderChain;
-use aws_sdk_s3::primitives::ByteStream;
-use aws_sdk_s3::{config::Region, meta::PKG_VERSION, Client, Error};
-use web3::types::{BlockId, BlockNumber, H256, U256, U64};
+use aws_sdk_s3::{config::Region, Client, Error};
 use std::env;
-use std::path::Path;
-use std::process;
-use serde_json::{json,Value};
+use serde_json::{Value};
 
 pub async fn init_connection() -> (String, Client) {
+    // Pull in environment variables
     dotenv::dotenv().ok();
 
     let bucket_name = &env::var("BUCKET_NAME").unwrap();
@@ -31,7 +28,6 @@ pub async fn init_connection() -> (String, Client) {
 }
 
 // Upload a file to a bucket.
-// snippet-start:[s3.rust.s3-helloworld]
 #[tokio::main]
 pub async fn upload_object(
     client: &Client,
@@ -39,8 +35,6 @@ pub async fn upload_object(
     block: &Value
 ) -> Result<(), Error> {
     let resp = client.list_buckets().send().await;
-
-    // println!("In thread");
 
     println!("{:#}", block);
    
