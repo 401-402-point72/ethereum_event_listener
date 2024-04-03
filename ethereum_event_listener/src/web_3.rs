@@ -2,17 +2,11 @@ mod s_3;
 
 use chrono::{DateTime, Local, TimeZone};
 use std::env;
-use std::str::FromStr;
 use std::thread;
 use std::time::Duration;
-use web3::types::{BlockId, BlockNumber, H160, H256, U256, U64};
+use web3::types::{BlockId, BlockNumber, H256, U256, U64};
 use serde_json::{json,Value};
 use std::sync::Arc;
-
-fn wei_to_eth(wei_val: U256) -> f64 {
-    let res = wei_val.as_u128() as f64;
-    res / 1_000_000_000_000_000_000.0
-}
 
 fn convert_date(timestamp_str: &str) -> DateTime<Local> {
     if let Ok(timestamp) = timestamp_str.parse::<i64>() {
@@ -22,9 +16,7 @@ fn convert_date(timestamp_str: &str) -> DateTime<Local> {
     }
 }
 
-fn format_as_json(block: &web3::types::Block<H256>) -> Value {
-    // println!("In format");
-    
+fn format_as_json(block: &web3::types::Block<H256>) -> Value {    
     let block_as_json = json!({
         "blockHash": block.hash,
         "blockNumber": block.number,
@@ -35,7 +27,7 @@ fn format_as_json(block: &web3::types::Block<H256>) -> Value {
         "authorAddress": block.author,
     });
 
-    (block_as_json)
+    block_as_json
 }
 
 #[tokio::main]
@@ -48,20 +40,10 @@ pub async fn read_block_data() -> web3::Result<()> {
     let websocket = web3::transports::WebSocket::new(&env::var("INFURA_SEPOLIA").unwrap()).await?;
     let web3s = web3::Web3::new(websocket);
 
-    // Get accounts from the connected node
-    let mut accounts = web3s.eth().accounts().await?;
-    accounts.push(H160::from_str(&env::var("ACCOUNT_ADDRESS").unwrap()).unwrap());
-    println!("Accounts: {:?}", accounts);
-
-    // Print those accounts' balances converted to Eth
-    for account in accounts {
-        let balance = web3s.eth().balance(account, None).await?;
-        println!("Eth balance of {:?} {}", account, wei_to_eth(balance));
-    }
-
     // Used for caching latest block number
     let mut previous_block_number: U64 = U64([u64::min_value(); 1]);
 
+    // Use Arc clones to stop borrowing issues
     let bucket_arc = Arc::new(bucket.clone());
     let client_arc = Arc::new(client.clone());
 
@@ -74,6 +56,7 @@ pub async fn read_block_data() -> web3::Result<()> {
             .unwrap()
             .unwrap();
         let block_number = latest_block.number.unwrap();
+
         // Do not print block if that one was already printed
         if block_number > previous_block_number {
             println!(
@@ -84,13 +67,14 @@ pub async fn read_block_data() -> web3::Result<()> {
                 convert_date(&latest_block.timestamp.to_string())
             );
 
+            // Clone again, don't ask me Rust is weird
             let bucket_clone = Arc::clone(&bucket_arc);
             let client_clone = Arc::clone(&client_arc);
 
+            // Spawn thread to process data so we do not miss new blocks coming in
             let _ = thread::spawn(move || {
-                // println!("Spawned a thread to store the data");
                 let block_json = format_as_json(&latest_block);
-                s_3::upload_object(&client_clone, &bucket_clone, &block_json);
+                let _ = s_3::upload_object(&client_clone, &bucket_clone, &block_json);
             });
         }
         previous_block_number = block_number;
@@ -98,5 +82,4 @@ pub async fn read_block_data() -> web3::Result<()> {
         // limits the number of requests we make
         thread::sleep(Duration::from_secs(1));
     }
-    Ok(())
 }
