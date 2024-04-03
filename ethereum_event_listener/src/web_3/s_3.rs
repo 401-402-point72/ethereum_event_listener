@@ -6,6 +6,8 @@ use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::{config::Region, Client, Error};
 use std::env;
 use serde_json::{Value};
+use aws_sdk_s3::primitives::ByteStream;
+use std::process;
 
 pub async fn init_connection() -> (String, Client) {
     // Pull in environment variables
@@ -33,32 +35,32 @@ pub async fn upload_object(
     client: &Client,
     bucket: &str,
     block: &Value
-) -> Result<(), Error> {
+) -> () {
     let resp = client.list_buckets().send().await;
 
     println!("{:#}", block);
    
-    // let body = ByteStream::from_path(Path::new(filename)).await;
+    // Convert json object to rust native byte stream and then aws byte stream
+    let rust_bytestream = serde_json::to_vec(&block).unwrap();
+    let aws_bytestream = ByteStream::from(rust_bytestream);
 
-    // match body {
-    //     Ok(b) => {
-    //         let resp = client
-    //             .put_object()
-    //             .bucket(bucket)
-    //             .key(key)
-    //             .body(b)
-    //             .send()
-    //             .await?;
-    //         println!("Upload success. Version: {:?}", resp.version_id);
-    //         let resp = client.get_object().bucket(bucket).key(key).send().await?;
-    //         let data = resp.body.collect().await;
-    //         // println!("data: {:?}", data.unwrap().into_bytes());
-    //     }
-    //     Err(e) => {
-    //         println!("Got an error uploading object:");
-    //         println!("{}", e);
-    //         process::exit(1);
-    //     }
-    // }
-    Ok(())
+    // Grab block number as indexable key
+    let key = match block["blockNumber"].as_str() {
+        Some(value) => value,
+        None => {
+            println!("Block number not found or is not a string");
+            return;
+        }
+    };
+
+    // Store object in bucket ... YAY!
+    let response = client
+        .put_object()
+        .bucket(bucket)
+        .key(key)
+        .body(aws_bytestream)
+        .send()
+        .await;
+
+    ()
 }
