@@ -8,6 +8,8 @@ use std::thread;
 use std::time::Duration;
 use web3::types::{BlockId, BlockNumber, Transaction, H160, U256, U64};
 
+// Transaction types come in as enums, got the types from https://arcana-network.medium.com/types-of-web3-transactions-9b423c1d0de3
+// Not entirely sure if it is correct or not
 fn map_type_to_string(value: u64) -> &'static str {
     match value {
         0 => "Ether Transaction",
@@ -26,6 +28,7 @@ fn convert_date(timestamp_str: &str) -> DateTime<Local> {
     }
 }
 
+// Transaction values come in as wei, the smallest form of ETH
 fn wei_to_ether(wei: U256) -> f64 {
     let ether = wei.as_u128() as f64 / 1_000_000_000_000_000_000.0;
     ether
@@ -45,6 +48,9 @@ fn format_as_json(block: &web3::types::Block<Transaction>) -> Value {
             "transactionType":
                 map_type_to_string(transaction.transaction_type.unwrap().as_u64()),
         });
+        
+        // Push each transaction object to a vector of all transaction objects
+        // Then add that object to the block object below
         transactions_json.push(transaction_json);
     }
 
@@ -64,7 +70,7 @@ fn format_as_json(block: &web3::types::Block<Transaction>) -> Value {
 
 #[tokio::main]
 pub async fn read_block_data() -> web3::Result<()> {
-    //process setup, connect to S3 and get environment secrets
+    // Process setup, connect to S3 and get environment secrets
     let (bucket, client) = s_3::init_connection().await;
     dotenv::dotenv().ok();
 
