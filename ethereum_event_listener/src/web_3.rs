@@ -63,6 +63,8 @@ fn format_as_json(block: &web3::types::Block<Transaction>) -> Value {
         "timestamp": block.timestamp.to_string(),
         "authorAddress": block.author,
         "transactions": transactions_json,
+        "gasLimit": block.gas_limit,
+        "size": block.size.unwrap()
     });
 
     block_as_json
